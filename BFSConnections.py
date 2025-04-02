@@ -1,7 +1,7 @@
 import pandas as pd
 
 ingredient1 = 'Pumpkin'
-ingredient2 = 'Cinnamon'
+ingredient2 = 'Mango'
 
 tasteTrioDF = pd.read_csv('datasets/taste_trios.csv')
 highlyCompatibleTrioDF = tasteTrioDF[tasteTrioDF['Classification Output'] == 'Highly Compatible']
@@ -46,10 +46,10 @@ def get_All_Compatible_Ingredients_Of_Ingredient(ingredient: str, compatibility)
 
 def check_for_connections(ingredient1: str, ingredient2: str, compatibilityLevel): 
     """
-    Check if there is a connection between two ingredients of the given compatibility level
+    Check if there is a connection between two ingredients of the given compatibility level by checking if there is a 3rd ingredient that is compatible with both ingredient1 and ingredient2
 
     @param ingredient1: one of the ingredients in the dataset
-    @param ingredient2: one of the ingredients in the dataset
+    @param ingredient2: another one of the ingredients in the dataset
     @param compatibilityLevel: 'highly' or 'moderately' or 'compatible'
     @return: Set of ingredients that are compatible with both ingredient1 and ingredient2
     """
@@ -62,6 +62,7 @@ def check_for_connections(ingredient1: str, ingredient2: str, compatibilityLevel
     #Find overlapping ingredients
     matchesWithBothIngredients = list(ingredients1_set.intersection(ingredients2_set))
 
+    """ #Use this to print all the ingredients that are compatible with both ingredient1 and ingredient2
     print(f"{compatibilityLevel} compatible ingredients between {ingredient1} and {ingredient2}:")
     print(matchesWithBothIngredients)
     print('---------------------------------------------------------------------------')
@@ -73,8 +74,67 @@ def check_for_connections(ingredient1: str, ingredient2: str, compatibilityLevel
     print(f"{compatibilityLevel} compatible ingredients that pair with {ingredient2}:")
     print(ingredients2_set)
     print('---------------------------------------------------------------------------')
+    """
+    return matchesWithBothIngredients
+
+def BFS_Connections_Search(ingredient1: str, ingredient2: str, compatibilityLevel: str):
+    """
+    Perform a BFS search to find all possible connections between two ingredients of the given compatibility level
+
+    @param ingredient1: one of the ingredients in the dataset
+    @param ingredient2: another one of the ingredients in the dataset
+    @param compatibilityLevel: 'highly' or 'moderately' or 'compatible'
+    @return: Set of all intermediate ingredients found in paths between ingredient1 and ingredient2
+    """
     
-check_for_connections(ingredient1, ingredient2, 'highly')
-check_for_connections(ingredient1, ingredient2, 'moderately')
-check_for_connections(ingredient1, ingredient2, 'compatible')
+    MAX_DEPTH = 4 # Maximum number of "hops" to search through before giving up
+    visited_paths = set()  
+    queue = [(ingredient1, [ingredient1])]#Queue contains tuples of (current_ingredient, path_so_far), Each path_so_far is a list showing the sequence of ingredients from start to current
+    all_paths = []    # Store all valid paths found from ingredient1 to ingredient2
+    intermediate_ingredients = set()
+
+    while queue:
+        current_ingredient, path = queue.pop(0) #removes and returns the first element (FIFO queue behavior)
+        if len(path) <= MAX_DEPTH:
+            compatible_ingredients = get_All_Compatible_Ingredients_Of_Ingredient(current_ingredient, compatibilityLevel)
+            
+            # Check each compatible ingredient
+            for next_ingredient in compatible_ingredients:
+                new_path = path.copy()
+                new_path.append(next_ingredient)
+                path_key = tuple(new_path)  # Convert path to tuple for hashing
+                
+                if next_ingredient == ingredient2 and len(new_path) <= MAX_DEPTH :
+                    if path_key not in visited_paths:
+                        visited_paths.add(path_key)
+                        all_paths.append(new_path)
+                        intermediate_ingredients.update(new_path[1:-1])  # Add all intermediate ingredients (excluding start and end)
+                
+                if len(new_path) <= MAX_DEPTH and path_key not in visited_paths:
+                    visited_paths.add(path_key)
+                    queue.append((next_ingredient, new_path))
+
+    
+    """if all_paths: #Use this to print all paths
+        print(f"\nFound {len(all_paths)} connections between {ingredient1} and {ingredient2}:")
+        all_paths.sort(key=len)
+        for path in all_paths:
+            print(" -> ".join(path))
+
+    else:
+        print(f"\nNo connections found between {ingredient1} and {ingredient2} within {MAX_DEPTH} steps")
+    """
+    return intermediate_ingredients
+
+ingredientsList1 = check_for_connections(ingredient1, ingredient2, 'highly')
+#check_for_connections(ingredient1, ingredient2, 'moderately')
+ #check_for_connections(ingredient1, ingredient2, 'compatible')
+
+ingredientsList2 = BFS_Connections_Search(ingredient1, ingredient2, 'highly')
+
+print("\n")
+print(f"Check For Connections Function: {ingredientsList1}")
+print('--------------------------------')
+print(f"BFS Connections Search Function: {ingredientsList2}")
+print("\n")
 
